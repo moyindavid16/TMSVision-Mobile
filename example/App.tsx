@@ -5,7 +5,7 @@ import * as Tmsvision from 'tmsvision';
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>{Tmsvision.hello()}</Text>
+      <Text>{Tmsvision.getTheme()} still having issues</Text>
     </View>
   );
 }
