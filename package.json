@@ -28,7 +28,10 @@
   "author": "moyindavid16 <moyindavid16@gmail.com> (https://github.com/moyindavid16)",
   "license": "MIT",
   "homepage": "https://github.com/moyindavid16/tmsvision#readme",
-  "dependencies": {},
+  "dependencies": {
+    "expo-camera": "~15.0.16",
+    "react-native-vision-camera": "^4.5.3"
+  },
   "devDependencies": {
     "@types/react": "^18.0.25",
     "expo-module-scripts": "^3.5.2",
