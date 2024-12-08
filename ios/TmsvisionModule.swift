@@ -12,26 +12,28 @@ public class TmsvisionModule: Module {
     }
 
     // Simple function to get the width and height of a frame
-    Function("processFrame") { (bufferRef: Int) -> String in
-    // Convert the integer reference to a pointer
-    guard let bufferPointer = UnsafeRawPointer(bitPattern: bufferRef) else {
-        return "Error: Invalid buffer reference"
-    }
-    
-    // Convert the pointer to a CVPixelBuffer
-    let pixelBuffer = Unmanaged<CVPixelBuffer>.fromOpaque(bufferPointer).takeUnretainedValue()
-    
-    // Lock the base address of the pixel buffer
-    CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-    defer {
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
-    }
+    Function("processFrame") { (bufferData: Data) -> String in
+      return "success"
+      // // Ensure the Data object contains the necessary raw pointer
+      // guard let rawPointer = bufferData.withUnsafeBytes({ $0.baseAddress }) else {
+      //     return "Error: Invalid buffer data"
+      // }
+      
+      // // Convert the raw pointer to a CVPixelBuffer
+      // let pixelBuffer = Unmanaged<CVPixelBuffer>.fromOpaque(rawPointer).takeUnretainedValue()
+      
+      // // Lock the base address of the pixel buffer
+      // CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+      // defer {
+      //     CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
+      // }
 
-    let width = CVPixelBufferGetWidth(pixelBuffer)
-    let height = CVPixelBufferGetHeight(pixelBuffer)
+      // // Get the frame dimensions
+      // let width = CVPixelBufferGetWidth(pixelBuffer)
+      // let height = CVPixelBufferGetHeight(pixelBuffer)
 
-    // Return the processed result
-    return "Frame dimensions: \(width)x\(height)"
+      // // Return the processed result as a string
+      // return "Frame dimensions: \(width)x\(height)"
     }
   }
 }
