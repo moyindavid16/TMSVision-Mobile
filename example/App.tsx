@@ -1,55 +1,82 @@
-import { useEffect, useState, useRef } from "react";
-import { Button, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { useState, useRef } from "react";
 import {
-  Frame,
+  Button,
+  Dimensions,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import {
+  Camera,
+  runAsync,
   useCameraDevice,
   useCameraPermission,
+  useFrameProcessor,
 } from "react-native-vision-camera";
-import {
-  Face,
-  Camera,
-  FaceDetectionOptions,
-} from "react-native-vision-camera-face-detector";
-import * as TMSVision from "tmsvision";
+import { FaceDetectionOptions } from "react-native-vision-camera-face-detector";
+import { Worklets } from "react-native-worklets-core";
+
+import { useLandmarkDetector } from "./ios/landmarkFrameProcessor/landmarkDetector";
+
+interface Point {
+  x: number;
+  y: number;
+}
 
 export default function App() {
   const device = useCameraDevice("front");
   const { hasPermission, requestPermission } = useCameraPermission();
   const [show, setShow] = useState(false);
   const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
-  // console.log("he;;o")
-
-  // const frameProcessor = useFrameProcessor((frame) => {
-  //   "worklet";
-  //   // console.log(`Frame: ${frame.width}x${frame.height} (${frame.pixelFormat})`);
-  //   // const som = new Uint8Array(frame.toArrayBuffer());
-  //   const som = new Uint8Array([0]);
-  //   const res = TMSVision.processFrame(frame);
-  //   console.log("kejh", res);
-  // }, []);
 
   const faceDetectionOptions = useRef<FaceDetectionOptions>({
     // detection options
     landmarkMode: "all",
     performanceMode: "accurate",
-    windowHeight: Dimensions.get("screen").height,
-    windowWidth: Dimensions.get("screen").width,
-    autoScale: true,
   }).current;
 
-  // const device = useCameraDevice('front')
+  const { detectLandmarks } = useLandmarkDetector(faceDetectionOptions);
+  const screenWidth = Dimensions.get("screen").width;
+  const screenHeight = Dimensions.get("screen").height;
+  const scaleX = screenWidth / 1920;
+  const scaleY = screenHeight / 1080;
 
-  function handleFacesDetection(faces: Face[], frame: Frame) {
-    if (faces.length > 0) {
-      // console.log("faces", faces.length, "frame", frame.toString());
-      // console.log(faces[0].landmarks);
-      const leftEye = faces[0].landmarks.LEFT_EYE;
-      const rightEye = faces[0].landmarks.RIGHT_EYE;
-      const nose = faces[0].landmarks.NOSE_BASE;
-      console.log({ leftEye, rightEye, nose });
-      setPoints([leftEye, rightEye, nose]);
-    }
-  }
+  const handleDetectedLandmarks = Worklets.createRunOnJS((points: Point[]) => {
+    const adjustedPoints = points.map((point) => ({
+      x: point.x * scaleX,
+      y: point.y * scaleY,
+    }));
+    // const flippedPoints = adjustedPoints.map(point => ({
+    //   x: screenWidth - point.x,
+    //   y: point.y,
+    // }));
+    setPoints(adjustedPoints);
+  });
+  // console.log(screenWidth, screenHeight, scaleX, scaleY);
+
+  const frameProcessor = useFrameProcessor(
+    (frame) => {
+      "worklet";
+      runAsync(frame, () => {
+        "worklet";
+        // const faces = detectFaces(frame);
+        // ... chain some asynchronous frame processor
+        // ... do something asynchronously with frame
+        // handleDetectedFaces(faces);
+        const landmarks = detectLandmarks(frame);
+        // console.log("landmarksdsds", landmarks);
+        if (landmarks.length > 0) {
+          // console.log(landmarks[0]);
+          const points = Object.values(landmarks[0]) as Point[];
+          handleDetectedLandmarks(points);
+        }
+      });
+      // ... chain frame processors
+      // ... do something with frame
+    },
+    [handleDetectedLandmarks],
+  );
 
   if (!hasPermission)
     return <Button title="Request permission" onPress={requestPermission} />;
@@ -64,6 +91,7 @@ export default function App() {
       </Pressable>
     );
   }
+  
   return (
     <View style={{ flex: 1 }}>
       {points.map((point, index) => (
@@ -86,9 +114,7 @@ export default function App() {
         style={StyleSheet.absoluteFill}
         device={device}
         isActive
-        faceDetectionCallback={handleFacesDetection}
-        faceDetectionOptions={faceDetectionOptions}
-        fps={10}
+        frameProcessor={frameProcessor}
       />
       <Pressable
         style={{
