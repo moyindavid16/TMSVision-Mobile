@@ -18,6 +18,8 @@
 		E0B1EF8E2EBBFA58077E982C /* libPods-tmsvisionexample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FDFA750063BAD97D67780ECF /* libPods-tmsvisionexample.a */; };
 		0CCBC2D0B11545C7961EC90B /* landmarkFrameProcessor.m in Sources */ = {isa = PBXBuildFile; fileRef = 8FDD4C7FDDA743A3BEE8E851 /* landmarkFrameProcessor.m */; };
 		F9FFBD1DFF9343DEB2EC5F93 /* landmarkFrameProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3B3BF55F1143FCB039F4E5 /* landmarkFrameProcessor.swift */; };
+		21DE90AC224D411D858F2007 /* VisionFrameProcessor.m in Sources */ = {isa = PBXBuildFile; fileRef = 53BD61BCA60A450EAF2E5647 /* VisionFrameProcessor.m */; };
+		621B2ED7CC2C4F22B31657B5 /* VisionFrameProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4039675282B142E091C6BCEF /* VisionFrameProcessor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +41,8 @@
 		FDFA750063BAD97D67780ECF /* libPods-tmsvisionexample.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-tmsvisionexample.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		8FDD4C7FDDA743A3BEE8E851 /* landmarkFrameProcessor.m */ = {isa = PBXFileReference; name = "landmarkFrameProcessor.m"; path = "landmarkFrameProcessor.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
 		4F3B3BF55F1143FCB039F4E5 /* landmarkFrameProcessor.swift */ = {isa = PBXFileReference; name = "landmarkFrameProcessor.swift"; path = "landmarkFrameProcessor.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		53BD61BCA60A450EAF2E5647 /* VisionFrameProcessor.m */ = {isa = PBXFileReference; name = "VisionFrameProcessor.m"; path = "VisionFrameProcessor.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
+		4039675282B142E091C6BCEF /* VisionFrameProcessor.swift */ = {isa = PBXFileReference; name = "VisionFrameProcessor.swift"; path = "VisionFrameProcessor.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +100,7 @@
 				D65327D7A22EEC0BE12398D9 /* Pods */,
 				D7E4C46ADA2E9064B798F356 /* ExpoModulesProviders */,
 				F0F00D4AF308495DBD745F09 /* landmarkFrameProcessor */,
+				2BD2E9730F764078A9C4197B /* VisionFrameProcessor */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -152,6 +157,16 @@
 			);
 			name = landmarkFrameProcessor;
 			path = landmarkFrameProcessor;
+			sourceTree = "<group>";
+		};
+		2BD2E9730F764078A9C4197B /* VisionFrameProcessor */ = {
+			isa = PBXGroup;
+			children = (
+				53BD61BCA60A450EAF2E5647 /* VisionFrameProcessor.m */,
+				4039675282B142E091C6BCEF /* VisionFrameProcessor.swift */,
+			);
+			name = VisionFrameProcessor;
+			path = VisionFrameProcessor;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -352,6 +367,8 @@
 				B3351B06844E4611890F6492 /* noop-file.swift in Sources */,
 				0CCBC2D0B11545C7961EC90B /* landmarkFrameProcessor.m in Sources */,
 				F9FFBD1DFF9343DEB2EC5F93 /* landmarkFrameProcessor.swift in Sources */,
+				21DE90AC224D411D858F2007 /* VisionFrameProcessor.m in Sources */,
+				621B2ED7CC2C4F22B31657B5 /* VisionFrameProcessor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
