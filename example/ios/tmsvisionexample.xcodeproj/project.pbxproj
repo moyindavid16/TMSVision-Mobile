@@ -16,6 +16,10 @@
 		B3351B06844E4611890F6492 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AE21165DB74BB5B48E7C55 /* noop-file.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		E0B1EF8E2EBBFA58077E982C /* libPods-tmsvisionexample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FDFA750063BAD97D67780ECF /* libPods-tmsvisionexample.a */; };
+		0CCBC2D0B11545C7961EC90B /* landmarkFrameProcessor.m in Sources */ = {isa = PBXBuildFile; fileRef = 8FDD4C7FDDA743A3BEE8E851 /* landmarkFrameProcessor.m */; };
+		F9FFBD1DFF9343DEB2EC5F93 /* landmarkFrameProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3B3BF55F1143FCB039F4E5 /* landmarkFrameProcessor.swift */; };
+		21DE90AC224D411D858F2007 /* VisionFrameProcessor.m in Sources */ = {isa = PBXBuildFile; fileRef = 53BD61BCA60A450EAF2E5647 /* VisionFrameProcessor.m */; };
+		621B2ED7CC2C4F22B31657B5 /* VisionFrameProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4039675282B142E091C6BCEF /* VisionFrameProcessor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +39,10 @@
 		EDDF0670C7A5AF39482CB138 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = tmsvisionexample/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-tmsvisionexample/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		FDFA750063BAD97D67780ECF /* libPods-tmsvisionexample.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-tmsvisionexample.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8FDD4C7FDDA743A3BEE8E851 /* landmarkFrameProcessor.m */ = {isa = PBXFileReference; name = "landmarkFrameProcessor.m"; path = "landmarkFrameProcessor.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
+		4F3B3BF55F1143FCB039F4E5 /* landmarkFrameProcessor.swift */ = {isa = PBXFileReference; name = "landmarkFrameProcessor.swift"; path = "landmarkFrameProcessor.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
+		53BD61BCA60A450EAF2E5647 /* VisionFrameProcessor.m */ = {isa = PBXFileReference; name = "VisionFrameProcessor.m"; path = "VisionFrameProcessor.m"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; explicitFileType = undefined; includeInIndex = 0; };
+		4039675282B142E091C6BCEF /* VisionFrameProcessor.swift */ = {isa = PBXFileReference; name = "VisionFrameProcessor.swift"; path = "VisionFrameProcessor.swift"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = sourcecode.swift; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +99,8 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				D65327D7A22EEC0BE12398D9 /* Pods */,
 				D7E4C46ADA2E9064B798F356 /* ExpoModulesProviders */,
+				F0F00D4AF308495DBD745F09 /* landmarkFrameProcessor */,
+				2BD2E9730F764078A9C4197B /* VisionFrameProcessor */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -137,6 +147,26 @@
 				92DBD88DE9BF7D494EA9DA96 /* tmsvisionexample */,
 			);
 			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
+		F0F00D4AF308495DBD745F09 /* landmarkFrameProcessor */ = {
+			isa = PBXGroup;
+			children = (
+				8FDD4C7FDDA743A3BEE8E851 /* landmarkFrameProcessor.m */,
+				4F3B3BF55F1143FCB039F4E5 /* landmarkFrameProcessor.swift */,
+			);
+			name = landmarkFrameProcessor;
+			path = landmarkFrameProcessor;
+			sourceTree = "<group>";
+		};
+		2BD2E9730F764078A9C4197B /* VisionFrameProcessor */ = {
+			isa = PBXGroup;
+			children = (
+				53BD61BCA60A450EAF2E5647 /* VisionFrameProcessor.m */,
+				4039675282B142E091C6BCEF /* VisionFrameProcessor.swift */,
+			);
+			name = VisionFrameProcessor;
+			path = VisionFrameProcessor;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -335,6 +365,10 @@
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
 				B3351B06844E4611890F6492 /* noop-file.swift in Sources */,
+				0CCBC2D0B11545C7961EC90B /* landmarkFrameProcessor.m in Sources */,
+				F9FFBD1DFF9343DEB2EC5F93 /* landmarkFrameProcessor.swift in Sources */,
+				21DE90AC224D411D858F2007 /* VisionFrameProcessor.m in Sources */,
+				621B2ED7CC2C4F22B31657B5 /* VisionFrameProcessor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
