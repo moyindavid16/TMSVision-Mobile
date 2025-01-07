@@ -42,10 +42,7 @@ public class landmarkFrameProcessorPlugin: FrameProcessorPlugin {
 
        // Create a VisionImage
        let visionImage = VisionImage(buffer: sampleBuffer)
-       visionImage.orientation = imageOrientation(
-           deviceOrientation: UIDevice.current.orientation,
-           cameraPosition: .back
-       )
+       visionImage.orientation = frame.orientation
 
        // Perform your custom processing here
        // Example: Log the frame size

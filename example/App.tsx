@@ -17,6 +17,7 @@ import {
 import { FaceDetectionOptions } from "react-native-vision-camera-face-detector";
 import { Worklets } from "react-native-worklets-core";
 
+import { useVisionLandmarkDetector } from "./ios/VisionFrameProcessor/visionLandmarkDetector";
 import { useLandmarkDetector } from "./ios/landmarkFrameProcessor/landmarkDetector";
 
 interface Point {
@@ -29,6 +30,7 @@ export default function App() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const [show, setShow] = useState(false);
   const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
+  const [visionPoints, setVisionPoints] = useState<{ x: number; y: number }[]>([]);
 
   const faceDetectionOptions = useRef<FaceDetectionOptions>({
     // detection options
@@ -37,6 +39,7 @@ export default function App() {
   }).current;
 
   const { detectLandmarks } = useLandmarkDetector(faceDetectionOptions);
+  const { detectVisionLandmarks } = useVisionLandmarkDetector();
   const screenWidth = Dimensions.get("screen").width;
   const screenHeight = Dimensions.get("screen").height;
   const scaleX = screenWidth / 1920;
@@ -53,6 +56,27 @@ export default function App() {
     // }));
     setPoints(adjustedPoints);
   });
+
+  const handleDetectVisionLandmarks = Worklets.createRunOnJS(
+    (points: { leftEye: Point[]; rightEye: Point[]; nose: Point[] }) => {
+      // Combine all points into one array
+      const allPoints = [...points.leftEye, ...points.rightEye, ...points.nose];
+      const adjustedPoints = allPoints.map((point) => ({
+        x: point.x * scaleX,
+        y: point.y * scaleY,
+      }));
+      // const flippedPoints = adjustedPoints.map(point => ({
+      //   x: screenWidth - point.x,
+      //   y: point.y,
+      // }));
+      // setPoints(adjustedPoints);
+
+      // console.log(points);
+      // console.log("detected points");
+
+      setVisionPoints(adjustedPoints);
+    },
+  );
   // console.log(screenWidth, screenHeight, scaleX, scaleY);
 
   const frameProcessor = useFrameProcessor(
@@ -66,12 +90,17 @@ export default function App() {
         // handleDetectedFaces(faces);
         const landmarks = detectLandmarks(frame);
         // console.log("landmarksdsds", landmarks);
+        // return;
         if (landmarks.length > 0) {
           // console.log(landmarks[0]);
           const points = Object.values(landmarks[0]) as Point[];
           handleDetectedLandmarks(points);
         }
+
+        const visionLandmarks = detectVisionLandmarks(frame);
+        handleDetectVisionLandmarks(visionLandmarks);
       });
+
       // ... chain frame processors
       // ... do something with frame
     },
@@ -91,7 +120,7 @@ export default function App() {
       </Pressable>
     );
   }
-  
+
   return (
     <View style={{ flex: 1 }}>
       {points.map((point, index) => (
@@ -103,6 +132,22 @@ export default function App() {
             height: 10,
             borderRadius: 5,
             backgroundColor: "green",
+            left: point.x,
+            top: point.y,
+            zIndex: 1000,
+          }}
+        />
+      ))}
+
+      {visionPoints.map((point, index) => (
+        <View
+          key={index}
+          style={{
+            position: "absolute",
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: "purple",
             left: point.x,
             top: point.y,
             zIndex: 1000,
