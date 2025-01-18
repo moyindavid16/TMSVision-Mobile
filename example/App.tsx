@@ -1,24 +1,15 @@
-import { useState, useRef } from "react";
-import {
-  Button,
-  Dimensions,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Skia } from "@shopify/react-native-skia";
+import { useState } from "react";
+import { Button, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   Camera,
-  runAsync,
   useCameraDevice,
+  useCameraFormat,
   useCameraPermission,
-  useFrameProcessor,
+  useSkiaFrameProcessor,
 } from "react-native-vision-camera";
-import { FaceDetectionOptions } from "react-native-vision-camera-face-detector";
-import { Worklets } from "react-native-worklets-core";
 
 import { useVisionLandmarkDetector } from "./ios/VisionFrameProcessor/visionLandmarkDetector";
-import { useLandmarkDetector } from "./ios/landmarkFrameProcessor/landmarkDetector";
 
 interface Point {
   x: number;
@@ -29,82 +20,43 @@ export default function App() {
   const device = useCameraDevice("front");
   const { hasPermission, requestPermission } = useCameraPermission();
   const [show, setShow] = useState(false);
-  const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
-  const [visionPoints, setVisionPoints] = useState<{ x: number; y: number }[]>([]);
 
-  const faceDetectionOptions = useRef<FaceDetectionOptions>({
-    // detection options
-    landmarkMode: "all",
-    performanceMode: "accurate",
-  }).current;
-
-  const { detectLandmarks } = useLandmarkDetector(faceDetectionOptions);
-  const { detectVisionLandmarks } = useVisionLandmarkDetector();
-  const screenWidth = Dimensions.get("screen").width;
-  const screenHeight = Dimensions.get("screen").height;
-  const scaleX = screenWidth / 1920;
-  const scaleY = screenHeight / 1080;
-
-  const handleDetectedLandmarks = Worklets.createRunOnJS((points: Point[]) => {
-    const adjustedPoints = points.map((point) => ({
-      x: point.x * scaleX,
-      y: point.y * scaleY,
-    }));
-    // const flippedPoints = adjustedPoints.map(point => ({
-    //   x: screenWidth - point.x,
-    //   y: point.y,
-    // }));
-    setPoints(adjustedPoints);
-  });
-
-  const handleDetectVisionLandmarks = Worklets.createRunOnJS(
-    (points: { leftEye: Point[]; rightEye: Point[]; nose: Point[] }) => {
-      // Combine all points into one array
-      const allPoints = [...points.leftEye, ...points.rightEye, ...points.nose];
-      const adjustedPoints = allPoints.map((point) => ({
-        x: point.x * scaleX,
-        y: point.y * scaleY,
-      }));
-      // const flippedPoints = adjustedPoints.map(point => ({
-      //   x: screenWidth - point.x,
-      //   y: point.y,
-      // }));
-      // setPoints(adjustedPoints);
-
-      // console.log(points);
-      // console.log("detected points");
-
-      setVisionPoints(adjustedPoints);
+  const format = useCameraFormat(device, [
+    {
+      videoResolution: {
+        width: 2016,
+        height: 1512,
+      },
     },
-  );
-  // console.log(screenWidth, screenHeight, scaleX, scaleY);
+    {
+      fps: 60,
+    },
+  ]);
 
-  const frameProcessor = useFrameProcessor(
+  const { detectVisionLandmarks } = useVisionLandmarkDetector();
+
+  // Prepare paint for circles
+  const paint = Skia.Paint();
+  paint.setColor(Skia.Color("blue")); // Set the circle color
+  paint.setAntiAlias(true); // Make the circles smooth
+
+  const skiaFrameProcessor = useSkiaFrameProcessor(
     (frame) => {
       "worklet";
-      runAsync(frame, () => {
-        "worklet";
-        // const faces = detectFaces(frame);
-        // ... chain some asynchronous frame processor
-        // ... do something asynchronously with frame
-        // handleDetectedFaces(faces);
-        const landmarks = detectLandmarks(frame);
-        // console.log("landmarksdsds", landmarks);
-        // return;
-        if (landmarks.length > 0) {
-          // console.log(landmarks[0]);
-          const points = Object.values(landmarks[0]) as Point[];
-          handleDetectedLandmarks(points);
-        }
 
-        const visionLandmarks = detectVisionLandmarks(frame);
-        handleDetectVisionLandmarks(visionLandmarks);
-      });
+      // Detect landmarks
+      const points: { leftEye: Point[]; rightEye: Point[]; nose: Point[] } =
+        detectVisionLandmarks(frame);
+      frame.render();
+      // console.log(frame.width, frame.height);
 
-      // ... chain frame processors
-      // ... do something with frame
+      // Draw circles at each point
+      const allPoints = [...points.leftEye, ...points.rightEye, ...points.nose];
+      for (const point of allPoints) {
+        frame.drawCircle(point.x, point.y, 5, paint); // Draw a circle with a radius of 5
+      }
     },
-    [handleDetectedLandmarks],
+    [detectVisionLandmarks],
   );
 
   if (!hasPermission)
@@ -123,43 +75,12 @@ export default function App() {
 
   return (
     <View style={{ flex: 1 }}>
-      {points.map((point, index) => (
-        <View
-          key={index}
-          style={{
-            position: "absolute",
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: "green",
-            left: point.x,
-            top: point.y,
-            zIndex: 1000,
-          }}
-        />
-      ))}
-
-      {visionPoints.map((point, index) => (
-        <View
-          key={index}
-          style={{
-            position: "absolute",
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: "purple",
-            left: point.x,
-            top: point.y,
-            zIndex: 1000,
-          }}
-        />
-      ))}
-
       <Camera
         style={StyleSheet.absoluteFill}
         device={device}
         isActive
-        frameProcessor={frameProcessor}
+        frameProcessor={skiaFrameProcessor}
+        format={format}
       />
       <Pressable
         style={{

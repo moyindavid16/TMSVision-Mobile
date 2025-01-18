@@ -48,6 +48,7 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
             return ["error": error.localizedDescription]
         }
 
+    //   return ["Fwidth": "\(frame.width)", "Fheight": "\(frame.height)"]
         return landmarkDetectionResults ?? ["error": "No results found"]
     }
 
@@ -70,7 +71,7 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
         }
 
         var landmarkDetectionResults: [String: [[String: CGFloat]]] = [:]
-        let imageSize = CGSize(width: 1920, height: 1080) // Replace with your actual image size
+        let imageSize = CGSize(width: 2016, height: 1512) // Replace with your actual image size
 
         if let leftEye = landmarks.leftEye {
             landmarkDetectionResults["leftEye"] = leftEye.pointsInImage(imageSize: imageSize).map {
@@ -86,6 +87,7 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
             landmarkDetectionResults["nose"] = nose.pointsInImage(imageSize: imageSize).map {
                 ["x": $0.x, "y": $0.y]
             }
+        //   landmarkDetectionResults["frame"] = [["width": imageSize.width, "height": imageSize.height]]
         }
 
         completion(landmarkDetectionResults, nil)
