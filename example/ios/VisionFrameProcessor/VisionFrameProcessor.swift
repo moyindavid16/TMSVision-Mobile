@@ -48,6 +48,7 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
             return ["error": error.localizedDescription]
         }
 
+    //   return ["Fwidth": "\(frame.width)", "Fheight": "\(frame.height)"]
         return landmarkDetectionResults ?? ["error": "No results found"]
     }
 
@@ -70,22 +71,35 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
         }
 
         var landmarkDetectionResults: [String: [[String: CGFloat]]] = [:]
-        let imageSize = CGSize(width: 1920, height: 1080) // Replace with your actual image size
+        let imageSize = CGSize(width: 2016, height: 1512) // Replace with your actual image size
+
+        // Helper function to calculate the centroid
+        func calculateCentroid(for points: [CGPoint]) -> CGPoint {
+            let sum = points.reduce(CGPoint.zero) { (sum, point) in
+                return CGPoint(x: sum.x + point.x, y: sum.y + point.y)
+            }
+            return CGPoint(x: sum.x / CGFloat(points.count), y: sum.y / CGFloat(points.count))
+        }
 
         if let leftEye = landmarks.leftEye {
-            landmarkDetectionResults["leftEye"] = leftEye.pointsInImage(imageSize: imageSize).map {
-                ["x": $0.x, "y": $0.y]
-            }
+            let pointsInImage = leftEye.pointsInImage(imageSize: imageSize).map { $0 }
+            let centroid = calculateCentroid(for: pointsInImage)
+            landmarkDetectionResults["leftEye"] = pointsInImage.map { ["x": $0.x, "y": $0.y] }
+            landmarkDetectionResults["leftEyeCenter"] = [["x": centroid.x, "y": centroid.y]]
         }
+
         if let rightEye = landmarks.rightEye {
-            landmarkDetectionResults["rightEye"] = rightEye.pointsInImage(imageSize: imageSize).map {
-                ["x": $0.x, "y": $0.y]
-            }
+            let pointsInImage = rightEye.pointsInImage(imageSize: imageSize).map { $0 }
+            let centroid = calculateCentroid(for: pointsInImage)
+            landmarkDetectionResults["rightEye"] = pointsInImage.map { ["x": $0.x, "y": $0.y] }
+            landmarkDetectionResults["rightEyeCenter"] = [["x": centroid.x, "y": centroid.y]]
         }
+
         if let nose = landmarks.nose {
-            landmarkDetectionResults["nose"] = nose.pointsInImage(imageSize: imageSize).map {
-                ["x": $0.x, "y": $0.y]
-            }
+            let pointsInImage = nose.pointsInImage(imageSize: imageSize).map { $0 }
+            let centroid = calculateCentroid(for: pointsInImage)
+            landmarkDetectionResults["nose"] = pointsInImage.map { ["x": $0.x, "y": $0.y] }
+            landmarkDetectionResults["noseCenter"] = [["x": centroid.x, "y": centroid.y]]
         }
 
         completion(landmarkDetectionResults, nil)
