@@ -9,6 +9,7 @@ import {
   useCameraPermission,
   useSkiaFrameProcessor,
 } from "react-native-vision-camera";
+import { Worklets } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 import { getContourRectangles } from "./helpers/getContourRectangles";
@@ -32,7 +33,7 @@ export default function App() {
   const device = useCameraDevice("front");
   const { hasPermission, requestPermission } = useCameraPermission();
   const [show, setShow] = useState(false);
-  const [detectError, setDetectError] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
 
   const format = useCameraFormat(device, [
     {
@@ -48,6 +49,8 @@ export default function App() {
 
   const { resize } = useResizePlugin();
   const { detectVisionLandmarks } = useVisionLandmarkDetector();
+
+  const safeSetFeedBackText = Worklets.createRunOnJS(setFeedbackText);
 
   const skiaFrameProcessor = useSkiaFrameProcessor((frame) => {
     "worklet";
@@ -91,17 +94,13 @@ export default function App() {
     // Detect landmarks
     const points: Points = detectVisionLandmarks(frame);
     if (!points.leftEye || !points.rightEye || !points.nose) {
-      // console.log("Unable to detect a face. Improve lighting or position face well");
-      // const font = Skia.Font(undefined, 18);
-      // frame.drawText(
-      //   "Unable to detect a face. Improve lighting or position face well",
-      //   100,
-      //   100,
-      //   paint,
-      //   font,
-      // );
+      safeSetFeedBackText(
+        "No face detetcted. Improve lighting or position face well",
+      );
       return;
     }
+
+    safeSetFeedBackText("");
 
     paint.setColor(Skia.Color("blue"));
     // Draw circles at each point
@@ -134,7 +133,7 @@ export default function App() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, alignItems: "center" }}>
       <Camera
         style={StyleSheet.absoluteFill}
         device={device}
@@ -142,20 +141,20 @@ export default function App() {
         frameProcessor={skiaFrameProcessor}
         format={format}
       />
-      {detectError && (
+      {feedbackText && (
         <Text
           style={{
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
             zIndex: 1000,
-            position: "absolute",
-            top: 100,
-            left: 100,
-            fontSize: 60,
+            fontSize: 30,
+            paddingTop: 30,
+            fontWeight: "semibold",
+            color: "aqua",
           }}
         >
-          No face detetcted. Improve lighting or position face well.{" "}
+          {feedbackText}
         </Text>
       )}
       <Pressable
