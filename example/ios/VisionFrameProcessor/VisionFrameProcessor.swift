@@ -96,7 +96,23 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
         }
 
         if let nose = landmarks.nose {
-            let pointsInImage = nose.pointsInImage(imageSize: imageSize).map { $0 }
+            let pointsInImage = nose.pointsInImage(imageSize: imageSize)
+            let sortedPoints = pointsInImage.sorted { $0.y < $1.y }
+
+            // Lowest five points for nose lower center
+            if sortedPoints.count >= 4 {
+                let lowerFourPoints = Array(sortedPoints.suffix(5))
+                let lowerCentroid = calculateCentroid(for: lowerFourPoints)
+                landmarkDetectionResults["noseLowerCenter"] = [["x": lowerCentroid.x, "y": lowerCentroid.y]]
+            }
+
+            // Highest three points for nose upper center
+            if sortedPoints.count >= 3 {
+                let upperThreePoints = Array(sortedPoints.prefix(3))
+                let upperCentroid = calculateCentroid(for: upperThreePoints)
+                landmarkDetectionResults["noseUpperCenter"] = [["x": upperCentroid.x, "y": upperCentroid.y]]
+            }
+
             let centroid = calculateCentroid(for: pointsInImage)
             landmarkDetectionResults["nose"] = pointsInImage.map { ["x": $0.x, "y": $0.y] }
             landmarkDetectionResults["noseCenter"] = [["x": centroid.x, "y": centroid.y]]

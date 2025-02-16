@@ -1,5 +1,5 @@
 import { Skia } from "@shopify/react-native-skia";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Pressable, StyleSheet, Text, View } from "react-native";
 import { OpenCV } from "react-native-fast-opencv";
 import {
@@ -9,11 +9,12 @@ import {
   useCameraPermission,
   useSkiaFrameProcessor,
 } from "react-native-vision-camera";
-import { Worklets } from "react-native-worklets-core";
+import { useSharedValue, Worklets } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 import { getContourRectangles } from "./helpers/getContourRectangles";
 import { useVisionLandmarkDetector } from "./ios/VisionFrameProcessor/visionLandmarkDetector";
+import { getItem, setItem } from "./utils/AsyncStorage";
 
 interface Point {
   x: number;
@@ -27,6 +28,16 @@ interface Points {
   leftEyeCenter: Point[];
   rightEyeCenter: Point[];
   noseCenter: Point[];
+  noseLowerCenter: Point[];
+  noseUpperCenter: Point[];
+}
+
+interface CalibratedPoints {
+  leftEyeCenter: Point;
+  rightEyeCenter: Point;
+  noseCenter: Point;
+  noseLowerCenter: Point;
+  noseUpperCenter: Point;
 }
 
 export default function App() {
@@ -34,6 +45,8 @@ export default function App() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const [show, setShow] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
+  const sharedCalibratedPoints = useSharedValue<CalibratedPoints | null>(null);
+  const sharedShouldCalibrate = useSharedValue(false);
 
   const format = useCameraFormat(device, [
     {
@@ -47,10 +60,22 @@ export default function App() {
     },
   ]);
 
+  useEffect(() => {
+    const getCalibratedPoints = async () => {
+      const points = await getItem("calibratedPoints");
+      if (points) {
+        sharedCalibratedPoints.value = points;
+      }
+    };
+
+    getCalibratedPoints();
+  }, []);
+
   const { resize } = useResizePlugin();
   const { detectVisionLandmarks } = useVisionLandmarkDetector();
 
   const safeSetFeedBackText = Worklets.createRunOnJS(setFeedbackText);
+  const safeSetItem = Worklets.createRunOnJS(setItem);
 
   const skiaFrameProcessor = useSkiaFrameProcessor((frame) => {
     "worklet";
@@ -113,9 +138,56 @@ export default function App() {
     const rightEyeCenter = points.rightEyeCenter[0];
     const leftEyeCenter = points.leftEyeCenter[0];
     const noseCenter = points.noseCenter[0];
+    const noseLowerCenter = points.noseLowerCenter[0];
+    const noseUpperCenter = points.noseUpperCenter[0];
     frame.drawCircle(rightEyeCenter.x, rightEyeCenter.y, 5, paint);
     frame.drawCircle(leftEyeCenter.x, leftEyeCenter.y, 5, paint);
     frame.drawCircle(noseCenter.x, noseCenter.y, 5, paint);
+    frame.drawCircle(noseLowerCenter.x, noseLowerCenter.y, 5, paint);
+    frame.drawCircle(noseUpperCenter.x, noseUpperCenter.y, 5, paint);
+
+    if (sharedShouldCalibrate.value) {
+      sharedShouldCalibrate.value = false;
+
+      const cpoints = {
+        rightEyeCenter,
+        leftEyeCenter,
+        noseCenter,
+        noseLowerCenter,
+        noseUpperCenter,
+      };
+
+      safeSetItem("calibratedPoints", cpoints);
+      sharedCalibratedPoints.value = cpoints;
+    }
+
+    if (sharedCalibratedPoints.value) {
+      const { leftEyeCenter, rightEyeCenter, noseLowerCenter } =
+        sharedCalibratedPoints.value;
+      paint.setColor(Skia.Color("yellow"));
+      paint.setStrokeWidth(3);
+      frame.drawLine(
+        leftEyeCenter.x,
+        leftEyeCenter.y,
+        rightEyeCenter.x,
+        rightEyeCenter.y,
+        paint,
+      );
+      frame.drawLine(
+        leftEyeCenter.x,
+        leftEyeCenter.y,
+        noseLowerCenter.x,
+        noseLowerCenter.y,
+        paint,
+      );
+      frame.drawLine(
+        rightEyeCenter.x,
+        rightEyeCenter.y,
+        noseLowerCenter.x,
+        noseLowerCenter.y,
+        paint,
+      );
+    }
   }, []);
 
   if (!hasPermission)
@@ -167,6 +239,25 @@ export default function App() {
         onPress={() => setShow(false)}
       >
         <Text style={{ zIndex: 1000 }}>Press to end</Text>
+      </Pressable>
+
+      <Pressable
+        style={{
+          position: "absolute",
+          bottom: 100,
+          right: 100,
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1000,
+          backgroundColor: "black",
+          borderRadius: 10,
+          padding: 15,
+        }}
+        onPress={() => (sharedShouldCalibrate.value = true)}
+      >
+        <Text style={{ zIndex: 1000, color: "white", fontWeight: "bold" }}>
+          Calibrate
+        </Text>
       </Pressable>
     </View>
   );
