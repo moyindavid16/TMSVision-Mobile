@@ -73,6 +73,12 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
         var landmarkDetectionResults: [String: [[String: CGFloat]]] = [:]
         let imageSize = CGSize(width: 2016, height: 1512) // Replace with your actual image size
 
+        let normalizedBox = faceObservation.boundingBox
+        let boxWidth = normalizedBox.width * imageSize.width
+        let boxHeight = normalizedBox.height * imageSize.height
+        let boxArea = boxWidth * boxHeight
+        landmarkDetectionResults["boundingBox"] = [["area": boxArea]]
+
         // Helper function to calculate the centroid
         func calculateCentroid(for points: [CGPoint]) -> CGPoint {
             let sum = points.reduce(CGPoint.zero) { (sum, point) in
@@ -93,6 +99,18 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
             let centroid = calculateCentroid(for: pointsInImage)
             landmarkDetectionResults["rightEye"] = pointsInImage.map { ["x": $0.x, "y": $0.y] }
             landmarkDetectionResults["rightEyeCenter"] = [["x": centroid.x, "y": centroid.y]]
+        }
+
+        if let leftPupil = landmarks.leftPupil {
+            let pointsInImage = leftPupil.pointsInImage(imageSize: imageSize).map { $0 }
+            let centroid = calculateCentroid(for: pointsInImage)
+            landmarkDetectionResults["leftPupil"] = pointsInImage.map { ["x": $0.x, "y": $0.y] }
+        }
+
+        if let rightPupil = landmarks.rightPupil {
+            let pointsInImage = rightPupil.pointsInImage(imageSize: imageSize).map { $0 }
+            let centroid = calculateCentroid(for: pointsInImage)
+            landmarkDetectionResults["rightPupil"] = pointsInImage.map { ["x": $0.x, "y": $0.y] }
         }
 
         if let nose = landmarks.nose {

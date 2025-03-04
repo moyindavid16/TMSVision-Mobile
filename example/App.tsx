@@ -1,7 +1,7 @@
-import {Skia} from "@shopify/react-native-skia";
-import {useEffect, useState} from "react";
-import {Button, Pressable, StyleSheet, Text, View} from "react-native";
-import {OpenCV} from "react-native-fast-opencv";
+import { Skia } from "@shopify/react-native-skia";
+import { useEffect, useState } from "react";
+import { Button, Pressable, StyleSheet, Text, View } from "react-native";
+import { OpenCV } from "react-native-fast-opencv";
 import {
   Camera,
   useCameraDevice,
@@ -9,13 +9,13 @@ import {
   useCameraPermission,
   useSkiaFrameProcessor,
 } from "react-native-vision-camera";
-import {useSharedValue, Worklets} from "react-native-worklets-core";
-import {useResizePlugin} from "vision-camera-resize-plugin";
+import { useSharedValue, Worklets } from "react-native-worklets-core";
+import { useResizePlugin } from "vision-camera-resize-plugin";
 
-import {drawFacialTriangle} from "./helpers/drawFacialTriangle";
-import {getContourRectangles} from "./helpers/getContourRectangles";
-import {useVisionLandmarkDetector} from "./ios/VisionFrameProcessor/visionLandmarkDetector";
-import {getItem, setItem} from "./utils/AsyncStorage";
+import { drawFacialTriangle } from "./helpers/drawFacialTriangle";
+import { getContourRectangles } from "./helpers/getContourRectangles";
+import { useVisionLandmarkDetector } from "./ios/VisionFrameProcessor/visionLandmarkDetector";
+import { getItem, setItem } from "./utils/AsyncStorage";
 
 export interface Point {
   x: number;
@@ -31,6 +31,9 @@ interface Points {
   noseCenter: Point[];
   noseLowerCenter: Point[];
   noseUpperCenter: Point[];
+  leftPupil: Point[];
+  rightPupil: Point[];
+  boundingBox: { area: number }[];
 }
 
 interface CalibratedPoints {
@@ -43,10 +46,11 @@ interface CalibratedPoints {
 
 export default function App() {
   const device = useCameraDevice("front");
-  const {hasPermission, requestPermission} = useCameraPermission();
+  const { hasPermission, requestPermission } = useCameraPermission();
   const [show, setShow] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const sharedCalibratedPoints = useSharedValue<CalibratedPoints | null>(null);
+  const sharedCalibratedBoxArea = useSharedValue<number | null>(null);
   const sharedShouldCalibrate = useSharedValue(false);
 
   const format = useCameraFormat(device, [
@@ -69,16 +73,24 @@ export default function App() {
       }
     };
 
+    const getCalibratedBoxArea = async () => {
+      const area = await getItem("boxArea");
+      if (area) {
+        sharedCalibratedBoxArea.value = area;
+      }
+    };
+
     getCalibratedPoints();
+    getCalibratedBoxArea();
   }, []);
 
-  const {resize} = useResizePlugin();
-  const {detectVisionLandmarks} = useVisionLandmarkDetector();
+  const { resize } = useResizePlugin();
+  const { detectVisionLandmarks } = useVisionLandmarkDetector();
 
   const safeSetFeedBackText = Worklets.createRunOnJS(setFeedbackText);
   const safeSetItem = Worklets.createRunOnJS(setItem);
 
-  const skiaFrameProcessor = useSkiaFrameProcessor(frame => {
+  const skiaFrameProcessor = useSkiaFrameProcessor((frame) => {
     "worklet";
     // Prepare paint for circles
     const paint = Skia.Paint();
@@ -121,7 +133,9 @@ export default function App() {
     // Detect landmarks
     const points: Points = detectVisionLandmarks(frame);
     if (!points.leftEye || !points.rightEye || !points.nose) {
-      safeSetFeedBackText("No face detetcted. Improve lighting or position face well");
+      safeSetFeedBackText(
+        "No face detetcted. Improve lighting or position face well",
+      );
       return;
     }
 
@@ -140,13 +154,18 @@ export default function App() {
     const noseCenter = points.noseCenter[0];
     const noseLowerCenter = points.noseLowerCenter[0];
     const noseUpperCenter = points.noseUpperCenter[0];
+    const boxArea = points.boundingBox[0].area;
     frame.drawCircle(rightEyeCenter.x, rightEyeCenter.y, 5, paint);
     frame.drawCircle(leftEyeCenter.x, leftEyeCenter.y, 5, paint);
     frame.drawCircle(noseCenter.x, noseCenter.y, 5, paint);
     frame.drawCircle(noseLowerCenter.x, noseLowerCenter.y, 5, paint);
     frame.drawCircle(noseUpperCenter.x, noseUpperCenter.y, 5, paint);
     paint.setColor(Skia.Color("green"));
-    drawFacialTriangle(paint, frame, [leftEyeCenter, rightEyeCenter, noseLowerCenter]);
+    drawFacialTriangle(paint, frame, [
+      leftEyeCenter,
+      rightEyeCenter,
+      noseLowerCenter,
+    ]);
 
     if (sharedShouldCalibrate.value) {
       sharedShouldCalibrate.value = false;
@@ -160,29 +179,64 @@ export default function App() {
       };
 
       safeSetItem("calibratedPoints", cpoints);
+      safeSetItem("boxArea", boxArea);
       sharedCalibratedPoints.value = cpoints;
+      sharedCalibratedBoxArea.value = boxArea;
     }
 
     if (sharedCalibratedPoints.value) {
-      const {leftEyeCenter, rightEyeCenter, noseLowerCenter} = sharedCalibratedPoints.value;
+      const { leftEyeCenter, rightEyeCenter, noseLowerCenter } =
+        sharedCalibratedPoints.value;
       paint.setColor(Skia.Color("yellow"));
 
-      drawFacialTriangle(paint, frame, [leftEyeCenter, rightEyeCenter, noseLowerCenter]);
+      drawFacialTriangle(paint, frame, [
+        leftEyeCenter,
+        rightEyeCenter,
+        noseLowerCenter,
+      ]);
+
+      if (!sharedCalibratedBoxArea.value) {
+        return;
+      }
+      const threshold = 0.2;
+      const boxAreaRatio = boxArea / sharedCalibratedBoxArea.value;
+      if (
+        boxAreaRatio > 1 + threshold &&
+        feedbackText !== "Move farther away"
+      ) {
+        safeSetFeedBackText("Move farther away");
+      } else if (
+        boxAreaRatio < 1 - threshold &&
+        feedbackText !== "Move closer"
+      ) {
+        safeSetFeedBackText("Move closer");
+      }
     }
+
+    // console.log(points.leftPupil, points.rightPupil);
+    // const leftPupil = points.leftPupil[0];
+    // const rightPupil = points.rightPupil[0];
+    // paint.setColor(Skia.Color("red"));
+    // frame.drawCircle(leftPupil.x, leftPupil.y, 5, paint);
+    // frame.drawCircle(rightPupil.x, rightPupil.y, 5, paint);
   }, []);
 
-  if (!hasPermission) return <Button title="Request permission" onPress={requestPermission} />;
+  if (!hasPermission)
+    return <Button title="Request permission" onPress={requestPermission} />;
   if (device == null) return <Text>Camera not available</Text>;
   if (!show) {
     return (
-      <Pressable style={{flex: 1, justifyContent: "center", alignItems: "center"}} onPress={() => setShow(true)}>
+      <Pressable
+        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        onPress={() => setShow(true)}
+      >
         <Text>Press to start</Text>
       </Pressable>
     );
   }
 
   return (
-    <View style={{flex: 1, alignItems: "center"}}>
+    <View style={{ flex: 1, alignItems: "center" }}>
       <Camera
         style={StyleSheet.absoluteFill}
         device={device}
@@ -215,7 +269,7 @@ export default function App() {
         }}
         onPress={() => setShow(false)}
       >
-        <Text style={{zIndex: 1000}}>Press to end</Text>
+        <Text style={{ zIndex: 1000 }}>Press to end</Text>
       </Pressable>
 
       <Pressable
@@ -232,7 +286,9 @@ export default function App() {
         }}
         onPress={() => (sharedShouldCalibrate.value = true)}
       >
-        <Text style={{zIndex: 1000, color: "white", fontWeight: "bold"}}>Calibrate</Text>
+        <Text style={{ zIndex: 1000, color: "white", fontWeight: "bold" }}>
+          Calibrate
+        </Text>
       </Pressable>
     </View>
   );
