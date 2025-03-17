@@ -1,15 +1,14 @@
 import { Point } from "../App";
 
-
 export const drawVectorPoints = (
   frame: any,
   paint: any,
   vectors: { x: number; y: number }[][],
   leftEyeCenter: Point,
   rightEyeCenter: Point,
-  noseLowerCenter: Point
+  noseLowerCenter: Point,
 ) => {
-  "worklet"
+  "worklet";
   if (vectors.length > 0) {
     vectors.forEach((vectorSet) => {
       const fromLeft = {

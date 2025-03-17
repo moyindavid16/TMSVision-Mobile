@@ -6,7 +6,7 @@ export const calculateRelativeVectors = (
   rightEyeCenter: Point,
   noseLowerCenter: Point,
 ) => {
-  "worklet"
+  "worklet";
   return greenPoints.map((greenPoint) => [
     // Vector from leftEyeCenter to green point
     {

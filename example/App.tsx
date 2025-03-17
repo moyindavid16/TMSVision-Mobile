@@ -1,6 +1,13 @@
 import { Skia } from "@shopify/react-native-skia";
 import { useEffect, useState } from "react";
-import { Button, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Button,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { OpenCV } from "react-native-fast-opencv";
 import {
   Camera,
@@ -16,6 +23,8 @@ import { calculateRelativeVectors } from "./helpers/calculateRelativeVectors";
 import { drawFacialTriangle } from "./helpers/drawFacialTriangle";
 import { drawVectorPoints } from "./helpers/drawVectorPoints";
 import { getContourRectangles } from "./helpers/getContourRectangles";
+import { getDistanceFeedback } from "./helpers/getDistanceFeedback";
+import { isFacialTriangleAligned } from "./helpers/isFacialTriangleAligned";
 import { useVisionLandmarkDetector } from "./ios/VisionFrameProcessor/visionLandmarkDetector";
 import { getItem, setItem } from "./utils/AsyncStorage";
 
@@ -51,6 +60,7 @@ export default function App() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const [show, setShow] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
+  const [faceAlignedText, setFaceAlignedText] = useState("");
   const sharedCalibratedPoints = useSharedValue<CalibratedPoints | null>(null);
   const sharedCalibratedBoxArea = useSharedValue<number | null>(null);
   const sharedShouldCalibrate = useSharedValue(false);
@@ -101,6 +111,7 @@ export default function App() {
   const { detectVisionLandmarks } = useVisionLandmarkDetector();
 
   const safeSetFeedBackText = Worklets.createRunOnJS(setFeedbackText);
+  const safeSetFaceAlignedText = Worklets.createRunOnJS(setFaceAlignedText);
   const safeSetItem = Worklets.createRunOnJS(setItem);
 
   const skiaFrameProcessor = useSkiaFrameProcessor((frame) => {
@@ -215,31 +226,45 @@ export default function App() {
     if (sharedCalibratedPoints.value) {
       paint.setColor(Skia.Color("yellow"));
 
+      const {
+        leftEyeCenter: calibratedLeftEyeCenter,
+        rightEyeCenter: calibratedRightEyeCenter,
+        noseLowerCenter: calibratedNoseLowerCenter,
+      } = sharedCalibratedPoints.value;
+
       drawFacialTriangle(paint, frame, [
-        sharedCalibratedPoints.value.leftEyeCenter,
-        sharedCalibratedPoints.value.rightEyeCenter,
-        sharedCalibratedPoints.value.noseLowerCenter,
+        calibratedLeftEyeCenter,
+        calibratedRightEyeCenter,
+        calibratedNoseLowerCenter,
       ]);
+
+      const triangleThreshold = 0.05;
+
+      const isAligned = isFacialTriangleAligned(
+        { leftEyeCenter, rightEyeCenter, noseLowerCenter },
+        {
+          leftEyeCenter: calibratedLeftEyeCenter,
+          rightEyeCenter: calibratedRightEyeCenter,
+          noseLowerCenter: calibratedNoseLowerCenter,
+        },
+        triangleThreshold,
+      );
+
+      safeSetFaceAlignedText(
+        isAligned ? "Facial triangle aligned" : "Align facial triangle",
+      );
 
       if (!sharedCalibratedBoxArea.value) {
         return;
       }
       const threshold = 0.1;
       const boxAreaRatio = boxArea / sharedCalibratedBoxArea.value;
-      if (
-        boxAreaRatio > 1 + threshold &&
-        feedbackText !== "Move farther away"
-      ) {
-        safeSetFeedBackText("Move farther away");
-      } else if (
-        boxAreaRatio < 1 - threshold &&
-        feedbackText !== "Move closer"
-      ) {
-        safeSetFeedBackText("Move closer");
-      }
-      // else if(boxAreaRatio<1+threshold && boxAreaRatio>1-threshold){
-      //   safeSetFeedBackText("Aligned")
-      // }
+      const distanceFeedback = getDistanceFeedback(
+        boxAreaRatio,
+        threshold,
+        feedbackText,
+      );
+      safeSetFeedBackText(distanceFeedback);
 
       // Draw points using relative vectors
       paint.setColor(Skia.Color("red"));
@@ -275,8 +300,10 @@ export default function App() {
     );
   }
 
+  const feedbackTexts = [feedbackText, faceAlignedText];
+
   return (
-    <View style={{ flex: 1, alignItems: "center" }}>
+    <SafeAreaView style={{ flex: 1 }}>
       <Camera
         style={StyleSheet.absoluteFill}
         device={device}
@@ -284,22 +311,11 @@ export default function App() {
         frameProcessor={skiaFrameProcessor}
         format={format}
       />
-      {feedbackText && (
-        <Text
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000,
-            fontSize: 30,
-            paddingTop: 30,
-            fontWeight: "bold",
-            color: "red",
-          }}
-        >
-          {feedbackText}
-        </Text>
-      )}
+
+      {feedbackTexts.map((text) => (
+        <Text style={styles.feedbackText}>{text}</Text>
+      ))}
+
       <Pressable
         style={{
           flex: 1,
@@ -330,6 +346,16 @@ export default function App() {
           Calibrate
         </Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  feedbackText: {
+    zIndex: 1000,
+    fontSize: 30,
+    fontWeight: "bold",
+    color: "red",
+    paddingHorizontal: 10,
+  },
+});
