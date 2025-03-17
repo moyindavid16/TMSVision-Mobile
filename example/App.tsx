@@ -12,7 +12,9 @@ import {
 import { useSharedValue, Worklets } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
+import { calculateRelativeVectors } from "./helpers/calculateRelativeVectors";
 import { drawFacialTriangle } from "./helpers/drawFacialTriangle";
+import { drawVectorPoints } from "./helpers/drawVectorPoints";
 import { getContourRectangles } from "./helpers/getContourRectangles";
 import { useVisionLandmarkDetector } from "./ios/VisionFrameProcessor/visionLandmarkDetector";
 import { getItem, setItem } from "./utils/AsyncStorage";
@@ -52,6 +54,9 @@ export default function App() {
   const sharedCalibratedPoints = useSharedValue<CalibratedPoints | null>(null);
   const sharedCalibratedBoxArea = useSharedValue<number | null>(null);
   const sharedShouldCalibrate = useSharedValue(false);
+  const sharedRelativeVectors = useSharedValue<{ x: number; y: number }[][]>(
+    [],
+  );
 
   const format = useCameraFormat(device, [
     {
@@ -80,8 +85,16 @@ export default function App() {
       }
     };
 
+    const getRelativeVectors = async () => {
+      const vectors = await getItem("relativeVectors");
+      if (vectors) {
+        sharedRelativeVectors.value = vectors;
+      }
+    };
+
     getCalibratedPoints();
     getCalibratedBoxArea();
+    getRelativeVectors();
   }, []);
 
   const { resize } = useResizePlugin();
@@ -94,7 +107,7 @@ export default function App() {
     "worklet";
     // Prepare paint for circles
     const paint = Skia.Paint();
-    paint.setStrokeWidth(3);
+    paint.setStrokeWidth(5);
     paint.setColor(Skia.Color("yellow"));
     paint.setAntiAlias(true); // Make the circles smooth
 
@@ -112,10 +125,13 @@ export default function App() {
       dataType: "uint8",
     });
 
-    const rectangles = getContourRectangles(height, width, resized);
+    //get green points
+    const greenPointsRects = getContourRectangles(height, width, resized);
+    const greenPoints: Point[] = [];
 
-    for (const rect of rectangles) {
+    for (const rect of greenPointsRects) {
       const rectangle = OpenCV.toJSValue(rect);
+      greenPoints.push({ x: rectangle.x * 4, y: rectangle.y * 4 });
 
       frame.drawRect(
         {
@@ -143,10 +159,10 @@ export default function App() {
 
     paint.setColor(Skia.Color("blue"));
     // Draw circles at each point
-    const allPoints = [...points.leftEye, ...points.rightEye, ...points.nose];
-    for (const point of allPoints) {
-      frame.drawCircle(point.x, point.y, 5, paint); // Draw a circle with a radius of 5
-    }
+    // const allPoints = [...points.leftEye, ...points.rightEye, ...points.nose];
+    // for (const point of allPoints) {
+    //   frame.drawCircle(point.x, point.y, 5, paint); // Draw a circle with a radius of 5
+    // }
 
     paint.setColor(Skia.Color("purple"));
     const rightEyeCenter = points.rightEyeCenter[0];
@@ -155,17 +171,27 @@ export default function App() {
     const noseLowerCenter = points.noseLowerCenter[0];
     const noseUpperCenter = points.noseUpperCenter[0];
     const boxArea = points.boundingBox[0].area;
-    frame.drawCircle(rightEyeCenter.x, rightEyeCenter.y, 5, paint);
-    frame.drawCircle(leftEyeCenter.x, leftEyeCenter.y, 5, paint);
-    frame.drawCircle(noseCenter.x, noseCenter.y, 5, paint);
-    frame.drawCircle(noseLowerCenter.x, noseLowerCenter.y, 5, paint);
-    frame.drawCircle(noseUpperCenter.x, noseUpperCenter.y, 5, paint);
+    // frame.drawCircle(rightEyeCenter.x, rightEyeCenter.y, 5, paint);
+    // frame.drawCircle(leftEyeCenter.x, leftEyeCenter.y, 5, paint);
+    // frame.drawCircle(noseCenter.x, noseCenter.y, 5, paint);
+    // frame.drawCircle(noseLowerCenter.x, noseLowerCenter.y, 5, paint);
+    // frame.drawCircle(noseUpperCenter.x, noseUpperCenter.y, 5, paint);
     paint.setColor(Skia.Color("green"));
     drawFacialTriangle(paint, frame, [
       leftEyeCenter,
       rightEyeCenter,
       noseLowerCenter,
     ]);
+
+    greenPoints.sort((a, b) => a.y - b.y);
+
+    // Calculate vectors from facial landmarks to each green point
+    const relativeVectors = calculateRelativeVectors(
+      greenPoints,
+      leftEyeCenter,
+      rightEyeCenter,
+      noseLowerCenter,
+    );
 
     if (sharedShouldCalibrate.value) {
       sharedShouldCalibrate.value = false;
@@ -180,25 +206,25 @@ export default function App() {
 
       safeSetItem("calibratedPoints", cpoints);
       safeSetItem("boxArea", boxArea);
+      safeSetItem("relativeVectors", relativeVectors);
       sharedCalibratedPoints.value = cpoints;
       sharedCalibratedBoxArea.value = boxArea;
+      sharedRelativeVectors.value = relativeVectors;
     }
 
     if (sharedCalibratedPoints.value) {
-      const { leftEyeCenter, rightEyeCenter, noseLowerCenter } =
-        sharedCalibratedPoints.value;
       paint.setColor(Skia.Color("yellow"));
 
       drawFacialTriangle(paint, frame, [
-        leftEyeCenter,
-        rightEyeCenter,
-        noseLowerCenter,
+        sharedCalibratedPoints.value.leftEyeCenter,
+        sharedCalibratedPoints.value.rightEyeCenter,
+        sharedCalibratedPoints.value.noseLowerCenter,
       ]);
 
       if (!sharedCalibratedBoxArea.value) {
         return;
       }
-      const threshold = 0.2;
+      const threshold = 0.1;
       const boxAreaRatio = boxArea / sharedCalibratedBoxArea.value;
       if (
         boxAreaRatio > 1 + threshold &&
@@ -211,6 +237,20 @@ export default function App() {
       ) {
         safeSetFeedBackText("Move closer");
       }
+      // else if(boxAreaRatio<1+threshold && boxAreaRatio>1-threshold){
+      //   safeSetFeedBackText("Aligned")
+      // }
+
+      // Draw points using relative vectors
+      paint.setColor(Skia.Color("red"));
+      drawVectorPoints(
+        frame,
+        paint,
+        sharedRelativeVectors.value,
+        leftEyeCenter,
+        rightEyeCenter,
+        noseLowerCenter,
+      );
     }
 
     // console.log(points.leftPupil, points.rightPupil);
@@ -253,8 +293,8 @@ export default function App() {
             zIndex: 1000,
             fontSize: 30,
             paddingTop: 30,
-            fontWeight: "semibold",
-            color: "aqua",
+            fontWeight: "bold",
+            color: "red",
           }}
         >
           {feedbackText}
