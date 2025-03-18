@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  View,
 } from "react-native";
 import { OpenCV } from "react-native-fast-opencv";
 import {
@@ -24,6 +23,7 @@ import { drawFacialTriangle } from "./helpers/drawFacialTriangle";
 import { drawVectorPoints } from "./helpers/drawVectorPoints";
 import { getContourRectangles } from "./helpers/getContourRectangles";
 import { getDistanceFeedback } from "./helpers/getDistanceFeedback";
+import { getMarkerTiltDirections } from "./helpers/getMarkerTiltDirections";
 import { isFacialTriangleAligned } from "./helpers/isFacialTriangleAligned";
 import { useVisionLandmarkDetector } from "./ios/VisionFrameProcessor/visionLandmarkDetector";
 import { getItem, setItem } from "./utils/AsyncStorage";
@@ -238,7 +238,7 @@ export default function App() {
         calibratedNoseLowerCenter,
       ]);
 
-      const triangleThreshold = 0.05;
+      const triangleThreshold = 0.02;
 
       const isAligned = isFacialTriangleAligned(
         { leftEyeCenter, rightEyeCenter, noseLowerCenter },
@@ -250,21 +250,41 @@ export default function App() {
         triangleThreshold,
       );
 
-      safeSetFaceAlignedText(
-        isAligned ? "Facial triangle aligned" : "Align facial triangle",
-      );
+      if (greenPoints.length !== sharedRelativeVectors.value.length) {
+        safeSetFaceAlignedText(
+          isAligned
+            ? "Facial triangle aligned. Incorrect number of markers detected."
+            : "Align facial triangle. Incorrect number of markers detected.",
+        );
+      } else {
+        const tiltDirections = getMarkerTiltDirections(
+          greenPoints,
+          sharedRelativeVectors.value,
+          calibratedLeftEyeCenter,
+          calibratedRightEyeCenter,
+          calibratedNoseLowerCenter,
+        );
+
+        safeSetFaceAlignedText(
+          isAligned
+            ? tiltDirections.length > 0
+              ? `Facial triangle aligned. ${tiltDirections.join(", ")}`
+              : "All aligned"
+            : "Align facial triangle",
+        );
+      }
 
       if (!sharedCalibratedBoxArea.value) {
         return;
       }
-      const threshold = 0.1;
+      const threshold = 0.3;
       const boxAreaRatio = boxArea / sharedCalibratedBoxArea.value;
       const distanceFeedback = getDistanceFeedback(
         boxAreaRatio,
         threshold,
         feedbackText,
       );
-      safeSetFeedBackText(distanceFeedback);
+      // safeSetFeedBackText(distanceFeedback);
 
       // Draw points using relative vectors
       paint.setColor(Skia.Color("red"));

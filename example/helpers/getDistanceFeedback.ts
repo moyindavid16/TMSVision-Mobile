@@ -3,14 +3,11 @@ export const getDistanceFeedback = (
   threshold: number = 0.1,
   currentFeedback: string = "",
 ): string => {
-  "worklet"
-  if (boxAreaRatio > 1 + threshold && currentFeedback !== "Move farther away") {
+  "worklet";
+  if (boxAreaRatio > 1 + threshold) {
     return "Move farther away";
-  } else if (
-    boxAreaRatio < 1 - threshold &&
-    currentFeedback !== "Move closer"
-  ) {
+  } else if (boxAreaRatio < 1 - threshold) {
     return "Move closer";
   }
-  return currentFeedback;
+  return "Good distance";
 };
