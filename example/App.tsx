@@ -238,8 +238,6 @@ export default function App() {
         calibratedNoseLowerCenter,
       ]);
 
-      const triangleThreshold = 0.02;
-
       const isAligned = isFacialTriangleAligned(
         { leftEyeCenter, rightEyeCenter, noseLowerCenter },
         {
@@ -247,7 +245,6 @@ export default function App() {
           rightEyeCenter: calibratedRightEyeCenter,
           noseLowerCenter: calibratedNoseLowerCenter,
         },
-        triangleThreshold,
       );
 
       if (greenPoints.length !== sharedRelativeVectors.value.length) {

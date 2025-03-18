@@ -11,35 +11,25 @@ export const isFacialTriangleAligned = (
     rightEyeCenter: Point;
     noseLowerCenter: Point;
   },
-  threshold: number,
 ): boolean => {
   "worklet";
+  const threshold = 15; // pixels
+
+  const withinThreshold = (p1: Point, p2: Point) =>
+    Math.abs(p1.x - p2.x) < threshold && Math.abs(p1.y - p2.y) < threshold;
+
   return (
-    Math.abs(calibratedPoints.leftEyeCenter.x - currentPoints.leftEyeCenter.x) /
-      Math.abs(calibratedPoints.leftEyeCenter.x) <
-      threshold &&
-    Math.abs(calibratedPoints.leftEyeCenter.y - currentPoints.leftEyeCenter.y) /
-      Math.abs(calibratedPoints.leftEyeCenter.y) <
-      threshold &&
-    Math.abs(
-      calibratedPoints.rightEyeCenter.x - currentPoints.rightEyeCenter.x,
-    ) /
-      Math.abs(calibratedPoints.rightEyeCenter.x) <
-      threshold &&
-    Math.abs(
-      calibratedPoints.rightEyeCenter.y - currentPoints.rightEyeCenter.y,
-    ) /
-      Math.abs(calibratedPoints.rightEyeCenter.y) <
-      threshold &&
-    Math.abs(
-      calibratedPoints.noseLowerCenter.x - currentPoints.noseLowerCenter.x,
-    ) /
-      Math.abs(calibratedPoints.noseLowerCenter.x) <
-      threshold &&
-    Math.abs(
-      calibratedPoints.noseLowerCenter.y - currentPoints.noseLowerCenter.y,
-    ) /
-      Math.abs(calibratedPoints.noseLowerCenter.y) <
-      threshold
+    withinThreshold(
+      currentPoints.leftEyeCenter,
+      calibratedPoints.leftEyeCenter,
+    ) &&
+    withinThreshold(
+      currentPoints.rightEyeCenter,
+      calibratedPoints.rightEyeCenter,
+    ) &&
+    withinThreshold(
+      currentPoints.noseLowerCenter,
+      calibratedPoints.noseLowerCenter,
+    )
   );
 };
