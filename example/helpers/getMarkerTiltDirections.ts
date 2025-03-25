@@ -49,9 +49,9 @@ export const getMarkerTiltDirections = (
     // If average y error is positive, points are too low (need to tilt up)
     // If average y error is negative, points are too high (need to tilt down)
     if (avgYError > 0) {
-      directions.push("Tilt up");
+      directions.push("up");
     } else {
-      directions.push("Tilt down");
+      directions.push("down");
     }
   }
 
@@ -60,9 +60,9 @@ export const getMarkerTiltDirections = (
     // If average x error is positive, points are too far right (need to tilt left)
     // If average x error is negative, points are too far left (need to tilt right)
     if (avgXError > 0) {
-      directions.push("Tilt left");
+      directions.push("left");
     } else {
-      directions.push("Tilt right");
+      directions.push("right");
     }
   }
 

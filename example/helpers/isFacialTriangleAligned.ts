@@ -13,7 +13,7 @@ export const isFacialTriangleAligned = (
   },
 ): boolean => {
   "worklet";
-  const threshold = 15; // pixels
+  const threshold = 15 * 3; // pixels
 
   const withinThreshold = (p1: Point, p2: Point) =>
     Math.abs(p1.x - p2.x) < threshold && Math.abs(p1.y - p2.y) < threshold;

@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
+  View,
 } from "react-native";
 import { OpenCV } from "react-native-fast-opencv";
 import {
@@ -79,6 +80,15 @@ export default function App() {
       fps: 60,
     },
   ]);
+
+  const resetCalibratedValues = async () => {
+    await setItem("calibratedPoints", null);
+    await setItem("boxArea", null);
+    await setItem("relativeVectors", null);
+    sharedCalibratedPoints.value = null;
+    sharedCalibratedBoxArea.value = null;
+    sharedRelativeVectors.value = [];
+  };
 
   useEffect(() => {
     const getCalibratedPoints = async () => {
@@ -265,7 +275,7 @@ export default function App() {
         safeSetFaceAlignedText(
           isAligned
             ? tiltDirections.length > 0
-              ? `Facial triangle aligned. ${tiltDirections.join(", ")}`
+              ? `Facial triangle aligned. Tilt helmet ${tiltDirections.join(" and ")}`
               : "All aligned"
             : "Align facial triangle",
         );
@@ -329,8 +339,10 @@ export default function App() {
         format={format}
       />
 
-      {feedbackTexts.map((text) => (
-        <Text style={styles.feedbackText}>{text}</Text>
+      {feedbackTexts.map((text, i) => (
+        <Text key={text + i} style={styles.feedbackText}>
+          {text}
+        </Text>
       ))}
 
       <Pressable
@@ -345,24 +357,48 @@ export default function App() {
         <Text style={{ zIndex: 1000 }}>Press to end</Text>
       </Pressable>
 
-      <Pressable
+      <View
         style={{
           position: "absolute",
           bottom: 100,
           right: 100,
-          justifyContent: "center",
-          alignItems: "center",
+          flexDirection: "row",
+          gap: 10,
           zIndex: 1000,
-          backgroundColor: "black",
-          borderRadius: 10,
-          padding: 15,
         }}
-        onPress={() => (sharedShouldCalibrate.value = true)}
       >
-        <Text style={{ zIndex: 1000, color: "white", fontWeight: "bold" }}>
-          Calibrate
-        </Text>
-      </Pressable>
+        <Pressable
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+            backgroundColor: "black",
+            borderRadius: 10,
+            padding: 15,
+          }}
+          onPress={() => (sharedShouldCalibrate.value = true)}
+        >
+          <Text style={{ zIndex: 1000, color: "white", fontWeight: "bold" }}>
+            Calibrate
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+            backgroundColor: "red",
+            borderRadius: 10,
+            padding: 15,
+          }}
+          onPress={resetCalibratedValues}
+        >
+          <Text style={{ zIndex: 1000, color: "white", fontWeight: "bold" }}>
+            Reset
+          </Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
