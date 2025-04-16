@@ -1,11 +1,14 @@
+import { Picker } from "@react-native-picker/picker";
 import { Skia } from "@shopify/react-native-skia";
 import { useEffect, useState } from "react";
 import {
   Button,
+  Modal,
   Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { OpenCV } from "react-native-fast-opencv";
@@ -28,40 +31,21 @@ import { getMarkerTiltDirections } from "./helpers/getMarkerTiltDirections";
 import { isFacialTriangleAligned } from "./helpers/isFacialTriangleAligned";
 import { useVisionLandmarkDetector } from "./ios/VisionFrameProcessor/visionLandmarkDetector";
 import { getItem, setItem } from "./utils/AsyncStorage";
-
-export interface Point {
-  x: number;
-  y: number;
-}
-
-interface Points {
-  leftEye: Point[];
-  rightEye: Point[];
-  nose: Point[];
-  leftEyeCenter: Point[];
-  rightEyeCenter: Point[];
-  noseCenter: Point[];
-  noseLowerCenter: Point[];
-  noseUpperCenter: Point[];
-  leftPupil: Point[];
-  rightPupil: Point[];
-  boundingBox: { area: number }[];
-}
-
-interface CalibratedPoints {
-  leftEyeCenter: Point;
-  rightEyeCenter: Point;
-  noseCenter: Point;
-  noseLowerCenter: Point;
-  noseUpperCenter: Point;
-}
+import { CalibratedPoints, Point, Points } from "./utils/interfaces";
 
 export default function App() {
   const device = useCameraDevice("front");
   const { hasPermission, requestPermission } = useCameraPermission();
+
   const [show, setShow] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [faceAlignedText, setFaceAlignedText] = useState("");
+  const [calibrationId, setCalibrationId] = useState<string>("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [availableIds, setAvailableIds] = useState<string[]>([]);
+  const [showCalibrationModal, setShowCalibrationModal] =
+    useState<boolean>(false);
+
   const sharedCalibratedPoints = useSharedValue<CalibratedPoints | null>(null);
   const sharedCalibratedBoxArea = useSharedValue<number | null>(null);
   const sharedShouldCalibrate = useSharedValue(false);
@@ -81,41 +65,66 @@ export default function App() {
     },
   ]);
 
+  // Modify resetCalibratedValues
   const resetCalibratedValues = async () => {
-    await setItem("calibratedPoints", null);
-    await setItem("boxArea", null);
-    await setItem("relativeVectors", null);
+    if (!selectedId) return;
+    const ids = availableIds.filter((id) => id !== selectedId);
+    await setItem("calibrationIds", ids);
+    await setItem(`calibratedPoints_${selectedId}`, null);
+    await setItem(`boxArea_${selectedId}`, null);
+    await setItem(`relativeVectors_${selectedId}`, null);
     sharedCalibratedPoints.value = null;
     sharedCalibratedBoxArea.value = null;
     sharedRelativeVectors.value = [];
+    setAvailableIds(ids);
+    setSelectedId(null);
   };
 
+  const loadCalibrationData = async () => {
+    const ids = (await getItem("calibrationIds")) || [];
+    setAvailableIds(ids);
+
+    if (selectedId) {
+      const points = await getItem(`calibratedPoints_${selectedId}`);
+      const area = await getItem(`boxArea_${selectedId}`);
+      const vectors = await getItem(`relativeVectors_${selectedId}`);
+
+      if (points) sharedCalibratedPoints.value = points;
+      if (area) sharedCalibratedBoxArea.value = area;
+      if (vectors) sharedRelativeVectors.value = vectors;
+    } else {
+      sharedCalibratedPoints.value = null;
+      sharedCalibratedBoxArea.value = null;
+      sharedRelativeVectors.value = [];
+    }
+  };
+  // Replace the existing useEffect
   useEffect(() => {
-    const getCalibratedPoints = async () => {
-      const points = await getItem("calibratedPoints");
-      if (points) {
-        sharedCalibratedPoints.value = points;
-      }
-    };
+    loadCalibrationData();
+  }, [selectedId]);
 
-    const getCalibratedBoxArea = async () => {
-      const area = await getItem("boxArea");
-      if (area) {
-        sharedCalibratedBoxArea.value = area;
-      }
-    };
+  const handleCalibrationSave = async () => {
+    if (!calibrationId || !sharedCalibratedPoints.value) return;
 
-    const getRelativeVectors = async () => {
-      const vectors = await getItem("relativeVectors");
-      if (vectors) {
-        sharedRelativeVectors.value = vectors;
-      }
-    };
+    const newIds = availableIds.includes(calibrationId)
+      ? availableIds
+      : [...availableIds, calibrationId];
+    await setItem("calibrationIds", newIds);
+    await setItem(
+      `calibratedPoints_${calibrationId}`,
+      sharedCalibratedPoints.value,
+    );
+    await setItem(`boxArea_${calibrationId}`, sharedCalibratedBoxArea.value);
+    await setItem(
+      `relativeVectors_${calibrationId}`,
+      sharedRelativeVectors.value,
+    );
 
-    getCalibratedPoints();
-    getCalibratedBoxArea();
-    getRelativeVectors();
-  }, []);
+    setAvailableIds(newIds);
+    setSelectedId(calibrationId);
+    setCalibrationId("");
+    setShowCalibrationModal(false);
+  };
 
   const { resize } = useResizePlugin();
   const { detectVisionLandmarks } = useVisionLandmarkDetector();
@@ -123,6 +132,9 @@ export default function App() {
   const safeSetFeedBackText = Worklets.createRunOnJS(setFeedbackText);
   const safeSetFaceAlignedText = Worklets.createRunOnJS(setFaceAlignedText);
   const safeSetItem = Worklets.createRunOnJS(setItem);
+  const safeSetShowCalibrationModal = Worklets.createRunOnJS(
+    setShowCalibrationModal,
+  );
 
   const skiaFrameProcessor = useSkiaFrameProcessor((frame) => {
     "worklet";
@@ -222,6 +234,7 @@ export default function App() {
 
     if (sharedShouldCalibrate.value) {
       sharedShouldCalibrate.value = false;
+      safeSetShowCalibrationModal(true);
 
       const cpoints = {
         rightEyeCenter,
@@ -231,9 +244,6 @@ export default function App() {
         noseUpperCenter,
       };
 
-      safeSetItem("calibratedPoints", cpoints);
-      safeSetItem("boxArea", boxArea);
-      safeSetItem("relativeVectors", relativeVectors);
       sharedCalibratedPoints.value = cpoints;
       sharedCalibratedBoxArea.value = boxArea;
       sharedRelativeVectors.value = relativeVectors;
@@ -337,6 +347,39 @@ export default function App() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <Modal visible={showCalibrationModal} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <TextInput
+            style={styles.input}
+            value={calibrationId}
+            onChangeText={(text) => setCalibrationId(text)}
+            placeholder="Enter calibration ID"
+          />
+          <Button title="Save" onPress={handleCalibrationSave} />
+          <Button
+            title="Cancel"
+            onPress={() => (
+              setShowCalibrationModal(false),
+              setCalibrationId(""),
+              loadCalibrationData()
+            )}
+          />
+        </View>
+      </Modal>
+
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedId}
+          onValueChange={(value) => setSelectedId(value)}
+          style={styles.picker}
+        >
+          <Picker.Item label="Select Profile" value="" />
+          {availableIds.map((id) => (
+            <Picker.Item key={id} label={id} value={id} />
+          ))}
+        </Picker>
+      </View>
+
       <Camera
         style={StyleSheet.absoluteFill}
         device={device}
@@ -416,5 +459,30 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "red",
     paddingHorizontal: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 20,
+  },
+  input: {
+    width: "80%",
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  pickerContainer: {
+    position: "absolute",
+    top: 100,
+    right: 20,
+    zIndex: 9999,
+  },
+  picker: {
+    width: 150,
+    backgroundColor: "white",
+    borderRadius: 5,
   },
 });

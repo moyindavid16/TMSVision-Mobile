@@ -1,4 +1,4 @@
-import { Point } from "../App";
+import { Point } from "../utils/interfaces";
 
 export const calculateRelativeVectors = (
   greenPoints: Point[],

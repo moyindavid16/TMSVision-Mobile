@@ -1712,6 +1712,8 @@ PODS:
     - React-utils (= 0.76.9)
   - RNCAsyncStorage (1.23.1):
     - React-Core
+  - RNCPicker (2.9.0):
+    - React-Core
   - RNReanimated (3.16.7):
     - DoubleConversion
     - glog
@@ -1925,6 +1927,7 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
+  - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - Tmsvision (from `../../ios`)
   - vision-camera-resize-plugin (from `../node_modules/vision-camera-resize-plugin`)
@@ -2101,6 +2104,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
+  RNCPicker:
+    :path: "../node_modules/@react-native-picker/picker"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   Tmsvision:
@@ -2202,6 +2207,7 @@ SPEC CHECKSUMS:
   ReactCodegen: f853a20cc9125c5521c8766b4b49375fec20648b
   ReactCommon: 300d8d9c5cb1a6cd79a67cf5d8f91e4d477195f9
   RNCAsyncStorage: aa75595c1aefa18f868452091fa0c411a516ce11
+  RNCPicker: 0e683a85cae99a8a739e97a49f269a4630de0a01
   RNReanimated: 6d22a1aec06a9787b797bc0c40fc2779be0599a5
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Tmsvision: 9fb29ca35ca4284e82f33e07b509a270ecfefb71

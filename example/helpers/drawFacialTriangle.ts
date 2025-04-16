@@ -1,7 +1,7 @@
 import { SkPaint } from "@shopify/react-native-skia";
 import { DrawableFrame } from "react-native-vision-camera";
 
-import { Point } from "../App";
+import { Point } from "../utils/interfaces";
 
 export const drawFacialTriangle = (
   paint: SkPaint,
