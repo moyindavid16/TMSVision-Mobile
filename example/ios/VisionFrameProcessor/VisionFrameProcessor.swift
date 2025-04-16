@@ -19,7 +19,8 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
         let landmarkDetectionRequest = VNDetectFaceLandmarksRequest { request, error in
             self.handleLandmarkDetectionRequest(
                 request: request,
-                error: error
+                error: error,
+                frame: frame
             ) { results, error in
                 landmarkDetectionResults = results
                 detectionError = error
@@ -55,6 +56,7 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
     private func handleLandmarkDetectionRequest(
         request: VNRequest?,
         error: Error?,
+        frame: Frame,
         completion: @escaping ([String: [[String: CGFloat]]], Error?) -> Void
     ) {
         if let requestError = error {
@@ -71,8 +73,8 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
         }
 
         var landmarkDetectionResults: [String: [[String: CGFloat]]] = [:]
-        let imageSize = CGSize(width: 2016, height: 1512) // Replace with your actual image size
-
+        let imageSize = CGSize(width: CGFloat(frame.width), height: CGFloat(frame.height))
+        
         let normalizedBox = faceObservation.boundingBox
         let boxWidth = normalizedBox.width * imageSize.width
         let boxHeight = normalizedBox.height * imageSize.height

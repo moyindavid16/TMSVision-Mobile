@@ -134,6 +134,17 @@ export default function App() {
 
     frame.render();
 
+    // Detect landmarks
+    const points: Points = detectVisionLandmarks(frame);
+    if (!points.leftEye || !points.rightEye || !points.nose) {
+      safeSetFeedBackText(
+        "No face detetcted. Improve lighting or position face well",
+      );
+      return;
+    }
+
+    const eyeLevel =
+      Math.min(points.leftEyeCenter[0].y, points.rightEyeCenter[0].y) / 4;
     const height = frame.height / 4;
     const width = frame.width / 4;
 
@@ -147,11 +158,15 @@ export default function App() {
     });
 
     //get green points
-    const greenPointsRects = getContourRectangles(height, width, resized);
+    const greenPointsRects = getContourRectangles(
+      height,
+      width,
+      resized,
+      eyeLevel,
+    );
     const greenPoints: Point[] = [];
 
-    for (const rect of greenPointsRects) {
-      const rectangle = OpenCV.toJSValue(rect);
+    for (const rectangle of greenPointsRects) {
       greenPoints.push({ x: rectangle.x * 4, y: rectangle.y * 4 });
 
       frame.drawRect(
@@ -166,15 +181,6 @@ export default function App() {
     }
 
     OpenCV.clearBuffers();
-
-    // Detect landmarks
-    const points: Points = detectVisionLandmarks(frame);
-    if (!points.leftEye || !points.rightEye || !points.nose) {
-      safeSetFeedBackText(
-        "No face detetcted. Improve lighting or position face well",
-      );
-      return;
-    }
 
     safeSetFeedBackText("");
 

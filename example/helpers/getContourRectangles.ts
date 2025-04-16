@@ -12,6 +12,7 @@ export const getContourRectangles = (
   height: number,
   width: number,
   resized: Uint8Array<ArrayBufferLike>,
+  eyeLevel: number,
 ) => {
   "worklet";
 
@@ -48,5 +49,13 @@ export const getContourRectangles = (
       rectangles.push(rect);
     }
   }
-  return rectangles;
+  const formattedRects = rectangles.map((rect) => {
+    return OpenCV.toJSValue(rect);
+  });
+  const filteredRects = formattedRects
+    .filter((rect) => rect.y < eyeLevel)
+    .sort((a, b) => b.y - a.y)
+    .slice(0, 5);
+
+  return filteredRects;
 };
