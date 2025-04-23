@@ -71,7 +71,6 @@ export default function CameraFeed({
     paint.setAntiAlias(true); // Make the circles smooth
 
     frame.render();
-
     // Detect landmarks
     const points: Points = detectVisionLandmarks(frame);
     if (!points.leftEye || !points.rightEye || !points.nose) {
