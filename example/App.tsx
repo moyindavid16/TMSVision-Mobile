@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import {
   useCameraDevice,
-  useCameraPermission
+  useCameraPermission,
 } from "react-native-vision-camera";
 import { useSharedValue, Worklets } from "react-native-worklets-core";
 

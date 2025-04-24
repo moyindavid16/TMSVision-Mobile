@@ -121,8 +121,10 @@ public class VisionFrameProcessorPlugin: FrameProcessorPlugin {
 
             // Lowest five points for nose lower center
             if sortedPoints.count >= 4 {
-                let lowerFourPoints = Array(sortedPoints.suffix(5))
-                let lowerCentroid = calculateCentroid(for: lowerFourPoints)
+                var lowerFivePoints = Array(pointsInImage)
+                lowerFivePoints.removeFirst(2)
+                lowerFivePoints.removeLast()
+                let lowerCentroid = calculateCentroid(for: lowerFivePoints)
                 landmarkDetectionResults["noseLowerCenter"] = [["x": lowerCentroid.x, "y": lowerCentroid.y]]
             }
 

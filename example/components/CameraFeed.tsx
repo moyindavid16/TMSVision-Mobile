@@ -1,14 +1,16 @@
 import { Skia } from "@shopify/react-native-skia";
+import { useState } from "react";
 import { Button, Text, StyleSheet } from "react-native";
 import { OpenCV } from "react-native-fast-opencv";
 import {
   Camera,
+  Orientation,
   useCameraDevice,
   useCameraFormat,
   useCameraPermission,
   useSkiaFrameProcessor,
 } from "react-native-vision-camera";
-import { ISharedValue } from "react-native-worklets-core";
+import { ISharedValue, useSharedValue } from "react-native-worklets-core";
 import { useResizePlugin } from "vision-camera-resize-plugin";
 
 import { calculateRelativeVectors } from "../helpers/calculateRelativeVectors";
@@ -46,6 +48,8 @@ export default function CameraFeed({
 }: CameraFeedProps) {
   const device = useCameraDevice("front");
   const { hasPermission, requestPermission } = useCameraPermission();
+  const orientation = useSharedValue<Orientation>("landscape-right");
+  // console.log(orientation);
 
   const format = useCameraFormat(device, [
     {
@@ -81,7 +85,10 @@ export default function CameraFeed({
     }
 
     const eyeLevel =
-      Math.min(points.leftEyeCenter[0].y, points.rightEyeCenter[0].y) / 4;
+      (orientation.value.startsWith("land")
+        ? points.leftEyeCenter[0].y + points.rightEyeCenter[0].y
+        : points.leftEyeCenter[0].x + points.rightEyeCenter[0].x) / 8;
+
     const height = frame.height / 4;
     const width = frame.width / 4;
 
@@ -100,6 +107,7 @@ export default function CameraFeed({
       width,
       resized,
       eyeLevel,
+      orientation.value,
     );
     const greenPoints: Point[] = [];
 
@@ -135,6 +143,10 @@ export default function CameraFeed({
     const noseLowerCenter = points.noseLowerCenter[0];
     const noseUpperCenter = points.noseUpperCenter[0];
     const boxArea = points.boundingBox[0].area;
+    // console.log(points.nose);
+    // for(const nosePoint of points.nose) {
+    //   frame.drawCircle(nosePoint.x, nosePoint.y, 5, paint);
+    // }
     // frame.drawCircle(rightEyeCenter.x, rightEyeCenter.y, 5, paint);
     // frame.drawCircle(leftEyeCenter.x, leftEyeCenter.y, 5, paint);
     // frame.drawCircle(noseCenter.x, noseCenter.y, 5, paint);
@@ -265,6 +277,9 @@ export default function CameraFeed({
       isActive
       frameProcessor={skiaFrameProcessor}
       format={format}
+      onOutputOrientationChanged={(_orientation) =>
+        (orientation.value = _orientation)
+      }
     />
   );
 }

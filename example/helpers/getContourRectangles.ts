@@ -7,12 +7,16 @@ import {
   ContourApproximationModes,
   Rect,
 } from "react-native-fast-opencv";
+import { Orientation } from "react-native-vision-camera";
+
+import { Point } from "../utils/interfaces";
 
 export const getContourRectangles = (
   height: number,
   width: number,
   resized: Uint8Array<ArrayBufferLike>,
   eyeLevel: number,
+  orientation: Orientation,
 ) => {
   "worklet";
 
@@ -49,12 +53,67 @@ export const getContourRectangles = (
       rectangles.push(rect);
     }
   }
+  // console.log("Gotten", orientation);
+  const transformPointToMatchOrientation = (rect: any) => {
+    switch (orientation) {
+      case "landscape-right":
+        return {
+          ...rect,
+          x: rect.x,
+          y: rect.y,
+        };
+      case "landscape-left":
+        return {
+          ...rect,
+          x: rect.x,
+          y: height - rect.y + rect.height,
+        };
+      case "portrait":
+        return {
+          ...rect,
+          x: rect.y,
+          y: rect.x,
+        };
+      case "portrait-upside-down":
+        return {
+          ...rect,
+          x: height - rect.y,
+          y: width - rect.x,
+        };
+      default:
+        return rect;
+    }
+  };
+
+  const filterFn = (rect: Point) => {
+    switch (orientation) {
+      case "landscape-right":
+        return rect.y < eyeLevel;
+      case "landscape-left":
+        return rect.y > eyeLevel;
+      case "portrait":
+        return rect.x < eyeLevel;
+      case "portrait-upside-down":
+        return rect.x > eyeLevel;
+      default:
+        return true;
+    }
+  };
+
   const formattedRects = rectangles.map((rect) => {
     return OpenCV.toJSValue(rect);
   });
+  // console.log({height, width})
+  // console.log(formattedRects.map(transformPointToMatchOrientation))
+  console.log(eyeLevel);
+  // console.log(formattedRects);
   const filteredRects = formattedRects
-    .filter((rect) => rect.y < eyeLevel)
-    .sort((a, b) => b.y - a.y)
+    .filter(filterFn)
+    .sort(
+      (a, b) =>
+        transformPointToMatchOrientation(b).y -
+        transformPointToMatchOrientation(a).y,
+    )
     .slice(0, 5);
 
   return filteredRects;
