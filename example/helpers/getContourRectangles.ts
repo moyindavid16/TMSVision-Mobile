@@ -105,7 +105,7 @@ export const getContourRectangles = (
   });
   // console.log({height, width})
   // console.log(formattedRects.map(transformPointToMatchOrientation))
-  console.log(eyeLevel);
+  // console.log(eyeLevel);
   // console.log(formattedRects);
   const filteredRects = formattedRects
     .filter(filterFn)

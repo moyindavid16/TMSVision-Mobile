@@ -123,6 +123,7 @@ export default function CameraFeed({
         },
         paint,
       );
+      // frame.drawCircle(rectangle.x * 4, rectangle.y * 4, 15, paint);
     }
 
     OpenCV.clearBuffers();
