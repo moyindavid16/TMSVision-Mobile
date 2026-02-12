@@ -6,7 +6,13 @@ The app uses real‑time facial landmark detection to track head orientation, me
 
 This repository contains the current iPad implementation, built as a React Native / Expo module with native components (VisionCamera, Apple Vision, and OpenCV) and an example app in the `example` folder.
 
-**Author:** Moyinoluwa Orimoloye(`@moyindavid16`)
+**Author:** Moyinoluwa Orimoloye (`@moyindavid16`)
+
+### Usage guidelines
+
+- **Lighting:** Use the app in a well‑lit environment—bright enough to clearly see the face, but not so bright that it causes strong glare or deep shadows.
+- **Background:** Avoid green objects or strong green backgrounds behind the user, as they can interfere with landmark detection.
+- **Device orientation:** Keep the iPad in the same orientation and position as it was during calibration. A stand will typically be provided to help maintain this fixed position between sessions.
 
 ---
 
@@ -104,5 +110,3 @@ npx expo start --clear
 ```
 
 ---
-
-
